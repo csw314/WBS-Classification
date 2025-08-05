@@ -1,1 +1,41 @@
+"""
+src/models/__init__.py – Central registry and re-exports
+=======================================================
+Every architecture lives in its own module; we import them here so callers can
+simply do::
+
+    from src.models import TextCNN, GRURNN, LSTMRNN
+
+and we expose a *string → class* mapping that training / inference scripts use
+via ``MODEL_REGISTRY``.
+"""
+from __future__ import annotations
+
+from importlib import import_module
+from typing import Dict, Type
+
+import sys
+import types
+
+# Lazy-import the concrete classes so we don’t pay start-up cost unless needed.
+
+_module_names = {
+    "text_cnn": "src.models.text_cnn.TextCNN",
+    "gru_rnn": "src.models.gru_rnn.GRURNN",
+    "lstm_rnn": "src.models.lstm_rnn.LSTMRNN",
+}
+
+MODEL_REGISTRY: Dict[str, Type] = {}
+__all__ = ["MODEL_REGISTRY"]  # will extend after dynamic imports
+
+for _name, _path in _module_names.items():
+    module_path, class_name = _path.rsplit(".", 1)
+    module: types.ModuleType = import_module(module_path)
+    cls = getattr(module, class_name)
+    MODEL_REGISTRY[_name] = cls
+    setattr(sys.modules[__name__], class_name, cls)
+    __all__.append(class_name)
+
+del _name, _path, _module_names, module_path, class_name, module, cls, types, import_module, sys  # cleanup
+
 
